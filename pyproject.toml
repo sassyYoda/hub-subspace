@@ -1,0 +1,35 @@
+[project]
+name = "hub-subspace"
+version = "0.1.0"
+description = "Hubness in multilingual word retrieval: diagnosis, localization, and causal ablation of a low-rank hub subspace"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "torch>=2.3",
+    "transformers>=4.44",
+    "tokenizers>=0.19",
+    "accelerate>=0.30",
+    "sentencepiece>=0.2",
+    "datasets>=2.20",
+    "numpy>=1.26,<2.0",
+    "scipy>=1.11,<1.13",
+    "scikit-learn>=1.3",
+    "tqdm>=4.65",
+    "huggingface-hub>=0.24",
+    "pytest>=8.0",
+]
+
+[project.optional-dependencies]
+# Decoder experiments (decoder_ablation, decoder_extract, downstream_patch) run
+# Llama-3-8B through Apple MLX, so they need Apple Silicon.
+decoder = ["mlx>=0.15", "mlx-lm>=0.15"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/core", "src/data", "src/extract"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

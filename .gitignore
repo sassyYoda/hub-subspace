@@ -1,0 +1,37 @@
+# venv / build
+.venv/
+dist/
+build/
+*.egg-info/
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# datasets (downloaded on demand; see README)
+data/
+
+# experiment outputs (regenerable; results/ is created by the scripts)
+results/
+
+# scratch
+*.npy
+*.npz
+*.pt
+*.bin
+.ipynb_checkpoints/
+.DS_Store
+
+# paper drafts and research notes (site lives in site-docs/, which is tracked)
+paper/
+paper_acl/
+notes/
+README-STYLE.md
+
+# stray pid files
+*.pid
+
+# paper submission build (kept out of the code artifact, like paper_acl/)
+hubness_arr_submission_august/

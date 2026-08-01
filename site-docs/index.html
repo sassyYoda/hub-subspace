@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hubness, Not Misalignment: A Causal Dial for Cross-Lingual Word Retrieval in Multilingual Models</title>
+<meta name="description" content="Ten high-variance directions of multilingual single-token activations act as a causal dial for cross-lingual word retrieval: ablate them and stranded words return, amplify them and retrieval collapses, matched random directions do neither. Interactive explainer.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hubness, Not Misalignment: A Causal Dial for Cross-Lingual Word Retrieval in Multilingual Models">
+<meta property="og:description" content="Word-level cross-lingual &quot;misalignment&quot; is a hubness pathology with a causal dial: ablate the hub subspace and stranded words return, amplify it and retrieval collapses. An interactive explainer with live, reproducible figures.">
+<meta property="og:image" content="assets/fig1_hubswitch.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0072B2">
+<style>
+:root{
+  color-scheme:light;
+  --hub:#0072B2; --amp:#D55E00; --rand:#8C8C8C; --csls:#009E73; --good:#009E73; --whiten:#7B5CD6;
+  --ink:#15202b; --muted:#5b6573; --faint:#6c7682; --em:#33414f; --tag-bg:#e9f4fb;
+  --bg:#ffffff; --card:#f8fafc; --line:#e7ebf0; --line2:#d8dee6;
+  --grid:#e7ebf0; --edge:#c1ccd8; --node:#6b7785;
+  --navbg:rgba(255,255,255,.86); --herograd:#eef6fc;
+  --btnbg:#15202b; --btnfg:#ffffff; --seg-bg:#eef2f6; --seg-on:#ffffff; --range-mid:#d4dbe2;
+  --surface:#ffffff; --figbg:#ffffff;
+  --maxw:760px;
+  --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --hub:#5aa9e6; --amp:#ff8f52; --rand:#9aa3ad; --csls:#3fcf97; --good:#3fcf97; --whiten:#a98bff;
+  --ink:#e9eef5; --muted:#9fabbb; --faint:#8a96a6; --em:#cdd7e3; --tag-bg:#16314a;
+  --bg:#0e1320; --card:#161d2c; --line:#27324a; --line2:#36435f;
+  --grid:#222c42; --edge:#3a475f; --node:#9aa6b6;
+  --navbg:rgba(14,19,32,.82); --herograd:#11243a;
+  --btnbg:#2f74b0; --btnfg:#ffffff; --seg-bg:#1c2638; --seg-on:#2a3650; --range-mid:#2c3950;
+  --surface:#1b2433; --figbg:#f4f6fa;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);
+  font-size:18px;line-height:1.62;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  transition:background .3s ease,color .3s ease}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+.wide{max-width:1040px;margin:0 auto;padding:0 22px}
+a{color:var(--hub);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,.eyebrow,.btn,nav,.ui{font-family:var(--sans)}
+/* nav */
+nav{position:sticky;top:0;z-index:50;background:var(--navbg);backdrop-filter:saturate(180%) blur(10px);
+  border-bottom:1px solid var(--line)}
+nav .inner{max-width:1040px;margin:0 auto;padding:10px 22px;display:flex;align-items:center;gap:18px;font-size:14px}
+.themebtn{margin-left:auto;border:1px solid var(--line2);background:transparent;color:var(--muted);
+  border-radius:8px;width:36px;height:30px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.themebtn:hover{color:var(--hub);border-color:var(--hub)}
+.themebtn svg{width:16px;height:16px}
+.ic-sun{display:none}
+:root[data-theme="dark"] .ic-sun{display:inline}
+:root[data-theme="dark"] .ic-moon{display:none}
+nav .brand{font-weight:700;color:var(--ink);letter-spacing:-.01em}
+nav .links{display:flex;gap:16px;margin-left:auto;color:var(--muted);flex-wrap:wrap}
+nav .links a{color:var(--muted);padding:3px 0;border-bottom:2px solid transparent}
+nav .links a:hover{color:var(--hub)}
+nav .links a.active{color:var(--ink);border-bottom-color:var(--hub)}
+@media(max-width:680px){nav .links{display:none}}
+/* hero */
+header.hero{padding:64px 0 30px;border-bottom:1px solid var(--line);background:
+  radial-gradient(1100px 380px at 50% -120px, var(--herograd) 0%, transparent 70%)}
+.eyebrow{color:var(--hub);font-weight:700;font-size:13px;letter-spacing:.12em;text-transform:uppercase;text-align:center}
+h1.title{font-family:var(--sans);font-weight:800;letter-spacing:-.025em;line-height:1.1;
+  font-size:40px;text-align:center;margin:14px auto 10px;max-width:880px}
+.subtitle{text-align:center;color:var(--muted);font-size:20px;max-width:680px;margin:0 auto 20px;line-height:1.5}
+.authors{text-align:center;color:var(--ink);font-size:16px;font-family:var(--sans)}
+.venue{text-align:center;color:var(--faint);font-size:14px;font-family:var(--sans);margin-top:4px}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:24px 0 6px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--btnbg);color:var(--btnfg);border-radius:999px;
+  padding:10px 18px;font-size:14px;font-weight:600;border:1px solid var(--btnbg);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+.btn svg{width:15px;height:15px}
+/* sections */
+section{padding:38px 0;scroll-margin-top:64px}
+.eyebrow.left{text-align:left}
+h2{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:6px 0 14px}
+h3{font-size:19px;font-weight:700;margin:26px 0 8px}
+p{margin:0 0 16px}
+.lead{font-size:20px;color:var(--ink)}
+.muted{color:var(--muted)}
+em{color:var(--em)}
+.kbd{font-family:var(--mono);font-size:.86em;background:var(--seg-bg);border:1px solid var(--line2);border-radius:5px;padding:1px 6px;color:var(--muted)}
+.tag{display:inline-block;font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--hub);background:var(--tag-bg);border-radius:6px;padding:3px 9px;margin-bottom:8px}
+/* abstract card */
+.abstract{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px;font-size:17px}
+.abstract h3{margin-top:0}
+/* figures */
+figure{margin:26px 0}
+figure img{width:100%;height:auto;border:1px solid var(--line2);border-radius:12px;background:#fff}
+figcaption{font-size:14.5px;color:var(--muted);margin-top:10px;line-height:1.5;font-family:var(--sans)}
+figcaption b{color:var(--ink)}
+/* explorable card */
+.exp{background:var(--surface);border:1px solid var(--line2);border-radius:16px;padding:0;margin:30px 0;overflow:hidden;
+  box-shadow:0 1px 2px rgba(20,32,43,.04),0 8px 30px rgba(20,32,43,.05)}
+.exp .head{padding:18px 22px 8px;border-bottom:1px solid var(--line)}
+.exp .head .t{font-family:var(--sans);font-weight:800;font-size:18px;letter-spacing:-.01em}
+.exp .head .d{font-family:var(--sans);color:var(--muted);font-size:14px;margin-top:3px}
+.exp .body{padding:18px 22px 22px}
+.controls{display:flex;flex-wrap:wrap;gap:18px 26px;align-items:center;margin:2px 0 10px;font-family:var(--sans)}
+.control{display:flex;flex-direction:column;gap:6px;min-width:160px;flex:1}
+.control label{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.03em;text-transform:uppercase}
+.seg{display:inline-flex;background:var(--seg-bg);border-radius:9px;padding:3px;gap:2px}
+.seg button{font-family:var(--sans);border:0;background:transparent;color:var(--muted);font-weight:600;
+  font-size:13.5px;padding:6px 12px;border-radius:7px;cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;
+  background:linear-gradient(90deg,var(--good),var(--range-mid) 38%,var(--range-mid) 42%,var(--amp));outline:none;margin:8px 0 0}
+input[type=range].plain{background:var(--range-mid)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:#fff;border:3px solid var(--hub);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18);margin-top:0}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--hub);cursor:pointer}
+.readouts{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 4px}
+.ro{flex:1;min-width:120px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.ro .k{font-family:var(--sans);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.ro .v{font-family:var(--sans);font-weight:800;font-size:30px;letter-spacing:-.02em;line-height:1.1;margin-top:3px}
+.ro .v small{font-size:15px;font-weight:600;color:var(--faint)}
+.dialstate{font-family:var(--sans);font-size:13.5px;font-weight:700;padding:4px 10px;border-radius:999px;display:inline-block}
+.chartwrap{margin-top:8px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--sans);font-size:13px;color:var(--muted);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:14px;height:3px;border-radius:2px;display:inline-block}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px #ccc}
+/* takeaways */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
+.tk{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.tk .n{font-family:var(--sans);font-weight:800;color:var(--hub);font-size:13px;letter-spacing:.06em}
+.tk h4{font-family:var(--sans);margin:6px 0 6px;font-size:16px}
+.tk p{font-size:15px;margin:0;color:var(--ink)}
+/* bibtex */
+pre.bib{background:#0f1722;color:#d7e2ee;border-radius:12px;padding:18px 20px;overflow:auto;font-family:var(--mono);
+  font-size:13px;line-height:1.5}
+footer{border-top:1px solid var(--line);padding:30px 0 60px;color:var(--muted);font-size:14px;font-family:var(--sans)}
+.note{font-size:13.5px;color:var(--faint);font-family:var(--sans)}
+hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
+@media(max-width:680px){
+  h1.title{font-size:30px}.subtitle{font-size:17px}.cards{grid-template-columns:1fr}
+  body{font-size:17px}.ro .v{font-size:24px}
+}
+.axis{font-family:var(--sans);font-size:11px;fill:var(--faint)}
+.axislab{font-family:var(--sans);font-size:12px;fill:var(--muted);font-weight:600}
+.draghint{font-family:var(--sans);font-size:12px;font-weight:700;color:var(--hub);margin-top:7px;
+  transition:opacity .45s;animation:pulse 1.7s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.draghint{animation:none}}
+</style>
+</head>
+<body>
+<nav><div class="inner">
+  <span class="brand">Hub Subspace</span>
+  <div class="links">
+    <a href="#puzzle">Puzzle</a>
+    <a href="#length">Context length</a>
+    <a href="#mechanism">Hubness</a>
+    <a href="#causal">Causality</a>
+    <a href="#whitening">Whitening</a>
+    <a href="#dial">Dial</a>
+    <a href="#paper">Citation</a>
+  </div>
+  <button id="themebtn" class="themebtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+    <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>
+    <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>
+  </button>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Multilingual representation geometry</div>
+  <h1 class="title">Hubness, Not Misalignment: A Causal Dial for Cross-Lingual Word Retrieval in Multilingual Models</h1>
+  <p class="subtitle">Multilingual models translate <em>words</em> far less reliably than <em>sentences</em>.
+  The gap is not missing alignment. Ten high-variance directions of the activation space
+  work as a causal dial: project them out and stranded words come back, amplify them and
+  retrieval collapses, and matched random directions do neither.</p>
+  <div class="authors">Anonymous Submission</div>
+  <div class="venue">Under review &middot; analysis track</div>
+  <div class="btns">
+    <a class="btn" href="paper.pdf">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5M7 3h7l5 5v13H7z"/></svg>Paper (PDF)</a>
+    <a class="btn ghost" href="https://github.com/sassyYoda/hub-subspace" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>Code</a>
+    <a class="btn ghost" href="#dial">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v15M6 13l6 6 6-6"/></svg>Try the dial</a>
+    <a class="btn ghost" href="#paper">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h12M8 12h12M8 18h12M3 6h.01M3 12h.01M3 18h.01"/></svg>BibTeX</a>
+  </div>
+</div></header>
+
+<section><div class="wrap">
+  <div class="abstract">
+    <h3>Abstract</h3>
+    <p style="margin-bottom:0">Multilingual language models reliably translate full sentences across languages; the
+    same cannot be said for single words. This gap is often attributed to word representations
+    being only partially aligned. We show that this failure stems largely from <em>hubness</em>,
+    wherein a handful of words (hubs) become the nearest neighbor for far too many translation
+    queries, stranding the rest of the vocabulary (anti-hubs). Via bilingual lexicon induction
+    across a set of eleven diverse languages, we find a few words to be the nearest neighbors of
+    up to 134 queries each, while 82% of the target vocabulary remains stranded; this imbalance
+    and the large hub mass gradually dissolve as the amount of context grows and lexical
+    ambiguity disappears. We find this hubness to be carried by ten high-variance directions of
+    the single-token activation space, emerging as a <b>bidirectional causal dial</b>. Projecting
+    out these directions recovers otherwise stranded words and amplifying them worsens retrieval,
+    while a <em>random</em> placebo does neither. Additionally, on downstream sentence-level tasks
+    we discover that &ldquo;de-hubbing&rdquo; has a greater effect on the hub-dominated XLM-R than
+    on sparsely-hubbed mBERT, and that the hub subspace is present beyond encoder models (a frozen
+    Llama-3-8B). We further reveal that common retrieval-time fixes like CSLS indirectly flatten
+    the same in-degree distribution targeted by our ablation: what looks like misaligned
+    representation can instead be a dial we turn directly within the model geometry.</p>
+  </div>
+</div></section>
+
+<section id="puzzle"><div class="wrap">
+  <div class="eyebrow left">01 &middot; The puzzle</div>
+  <h2>Sentences align. Words do not.</h2>
+  <p class="lead">Take a multilingual encoder, embed a sentence in English and its translation in Spanish, and the
+  two land almost on top of each other. Do the same with a single word and retrieval falls apart.</p>
+  <p>The same hidden states that match sentences across languages near-perfectly, with no training, match
+  isolated words much worse. The usual explanation is that the word-level space is only partly aligned, so people
+  reach for a better mapping. We take the asymmetry itself as the clue and ask what changes as a word grows into a
+  sentence.</p>
+  <figure>
+    <img src="assets/fig1_hubswitch.png" alt="Word translation funnels queries onto a hub word; projecting out the hub subspace releases them and stranded words come back">
+    <figcaption><b>The hub, and the switch.</b> Left: retrieving each English word's nearest
+    Spanish neighbor from single-token activations funnels queries onto a hub word; on mBERT
+    en&ndash;es the top hub is the nearest neighbor of 134 queries and 82% of Spanish words are
+    never retrieved. Right: projecting out the ten highest-variance directions releases the
+    queries and the stranded words come back. The effect is quantitative, bidirectional, and
+    specific to these directions.</figcaption>
+  </figure>
+</div></section>
+
+<section id="length"><div class="wide">
+  <div class="wrap" style="padding:0">
+    <div class="eyebrow left">02 &middot; Context length</div>
+    <h2>The worst case is a single word</h2>
+    <p>Accuracy climbs smoothly as a word gains context, in every language and both encoders. Word-level retrieval
+    is the worst-case endpoint of one curve, not a separate phenomenon. Drag the slider from a single token to a
+    full sentence and watch the floor lift.</p>
+  </div>
+  <div class="exp" id="exp-length">
+    <div class="head"><div class="t">Accuracy vs. context length</div>
+      <div class="d">Identity cosine retrieval, layer 1. Each thin line is one language; the bold line is the mean.</div></div>
+    <div class="body">
+      <div class="controls">
+        <div class="control" style="max-width:230px">
+          <label>Context length <span class="kbd" id="lz-kval">1 token</span></label>
+          <input type="range" class="plain" id="lz-k" min="0" max="5" step="1" value="0">
+        </div>
+        <div class="control" style="flex:0;min-width:auto">
+          <label>Encoder</label>
+          <div class="seg" id="lz-enc"><button data-v="mbert" class="on">mBERT</button><button data-v="xlmr">XLM-R</button></div>
+        </div>
+        <div class="control" style="flex:0;min-width:auto">
+          <label>Highlight</label>
+          <div class="seg" id="lz-lang"></div>
+        </div>
+      </div>
+      <div class="readouts">
+        <div class="ro"><div class="k">Mean accuracy</div><div class="v" id="lz-mean">—</div></div>
+        <div class="ro"><div class="k" id="lz-hl-name">Highlighted</div><div class="v" id="lz-hl">—</div></div>
+        <div class="ro"><div class="k">Lift from single token</div><div class="v" id="lz-lift">—</div></div>
+      </div>
+      <div class="chartwrap"><svg id="lz-svg" viewBox="0 0 900 340" width="100%"></svg></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="mechanism"><div class="wrap">
+  <div class="eyebrow left">03 &middot; The mechanism</div>
+  <h2>A few words become hubs</h2>
+  <p class="lead">In single-token space the nearest-neighbor graph collapses onto a few <em>hub</em> words that are
+  the top match for hundreds of queries, while most words are no one's match.</p>
+  <p>One hub word can be the nearest neighbor of up to 134 queries; 82% of the gallery is
+  never retrieved by anyone. As context grows, the hub mass melts away. Hubs track
+  <b>lexical ambiguity</b>, not frequency: monosemous words retrieve at 0.52 against 0.26
+  for polysemous ones, and a multivariate regression keeps polysemy as the strongest
+  per-word predictor once word length, frequency, and subword count are held fixed. The
+  words the hubs crowd out are essentially unretrievable, at 0.02 against 0.65 for hub
+  targets.</p>
+  </div>
+  <div class="wide"><div class="exp" id="exp-hub">
+    <div class="head"><div class="t">From a crowd to a spread</div>
+      <div class="d">Schematic. Left dots are queries, right dots are candidate words; each query links to its nearest neighbor. Slide from single words to full sentences and watch the crowd leave the hubs.</div></div>
+    <div class="body">
+      <div class="controls">
+        <div class="control" style="min-width:260px;max-width:420px">
+          <label>Context <span class="kbd" id="h-lab">single words</span></label>
+          <input type="range" class="plain" id="h-t" min="0" max="100" step="1" value="0">
+        </div>
+      </div>
+      <div class="readouts">
+        <div class="ro"><div class="k">Biggest hub catches</div><div class="v" id="h-top">—</div></div>
+        <div class="ro"><div class="k">Words never matched</div><div class="v" id="h-never">—</div></div>
+      </div>
+      <div class="chartwrap"><svg id="h-svg" viewBox="0 0 900 380" width="100%"></svg></div>
+    </div>
+  </div></div>
+  <div class="wrap" style="padding:0">
+  <figure>
+    <img src="assets/fig3_hub_collapse.png" alt="Hub collapse: in-degree concentrates for words">
+    <figcaption><b>Hub collapse.</b> The nearest-neighbor in-degree distribution is heavy-tailed for words and
+    flattens for sentences. A small number of words absorb the retrievals that should have gone elsewhere.</figcaption>
+  </figure>
+</div></section>
+
+<section id="causal"><div class="wrap">
+  <div class="eyebrow left">04 &middot; Localized and causal</div>
+  <h2>The hubs live in a few high-variance directions</h2>
+  <p class="lead">The hub structure is not spread across the representation. It sits in a small set of
+  top-variance directions, about 14% of the variance on mBERT and 23% on XLM-R in ten
+  directions, 11 to 18 times their isotropic share. The space as a whole stays
+  high-dimensional, with an effective rank of roughly 405 of 768 on mBERT and 300 on
+  XLM-R: a concentration, not a low-dimensional space.</p>
+  <p>We project out the top directions (all-but-the-top) and previously unretrievable words
+  recover, on all five language pairs and both encoders: on mBERT recovery rises from
+  0.07&ndash;0.12 to 0.14&ndash;0.19, matching CSLS, and on the more hub-prone XLM-R from
+  0.05&ndash;0.09 to 0.18&ndash;0.22, above CSLS. Projecting out the same number of
+  <em>random</em> directions does nothing; that control is what pins the effect on the
+  high-variance directions rather than on generic rank reduction. The subspace also
+  travels: estimated on en&ndash;es alone and applied unchanged, it recovers anti-hub words
+  on the other four pairs at 113% of the pair-native gain on mBERT and 93% on XLM-R,
+  holds on queries whose English word never entered the estimation, and a subspace fit on
+  a disjoint half of the words de-hubs the held-out half as well as the in-sample fit. A
+  frozen Llama-3-8B carries the same structure: removing it shifts the next-token
+  distribution toward the correct word (+0.09 nats, positive in 8/8 seeds) without
+  changing the top-1 output, a scoped check that the subspace is a property of the
+  representation, not of encoder retrieval.</p>
+  <figure>
+    <img src="assets/fig_ablation_breadth.png" alt="Ablation across pairs and encoders with random control">
+    <figcaption><b>Ablation with a random control.</b> Hub-ablation (blue) lifts anti-hub recovery far above
+    baseline; equal-rank random ablation (hatched) stays at baseline. On XLM-R it even beats the retrieval-time
+    fix CSLS.</figcaption>
+  </figure>
+</div></section>
+
+<section id="whitening"><div class="wide">
+  <div class="wrap" style="padding:0">
+    <div class="eyebrow left">05 &middot; Is it really localized?</div>
+    <h2>Whitening tests the subspace claim</h2>
+    <p class="lead">A skeptic could say removing the biggest directions always helps, so this is just generic
+    anisotropy, not a real subspace. We test that head-on.</p>
+    <p>ZCA whitening rescales <em>every</em> direction to equal variance, full isotropy, instead of removing the
+    top ten. If the recovery needed one narrow set of special coordinates, whitening should fall short. It does not.
+    Whitening de-hubs at least as well as the directed ablation and recovers stranded words comparably or better,
+    on both encoders, while discarding no directions. On the heavy-hub XLM-R it flattens the in-degree
+    distribution more than ABTT and edges it on both accuracy and recovery. Pick a metric and watch the three
+    bars.</p>
+  </div>
+  <div class="exp" id="exp-whiten">
+    <div class="head"><div class="t">Whitening vs. directed ablation</div>
+      <div class="d">Baseline, top-10 ablation (ABTT), and ZCA whitening on the same layer-1 activations, 5 seeds. Whitening rescales all directions to equal variance; ABTT removes the top ten. Every number is measured.</div></div>
+    <div class="body">
+      <div class="controls">
+        <div class="control" style="flex:0;min-width:auto">
+          <label>Metric</label>
+          <div class="seg" id="w-metric"><button data-v="anti" class="on">Anti-hub recovery</button><button data-v="p1">P@1</button><button data-v="skew">In-degree skew</button></div>
+        </div>
+        <div class="control" style="flex:0;min-width:auto">
+          <label>Encoder</label>
+          <div class="seg" id="w-enc"><button data-v="mbert" class="on">mBERT</button><button data-v="xlmr">XLM-R</button></div>
+        </div>
+        <div class="control" style="flex:0;min-width:auto">
+          <label>Language pair</label>
+          <div class="seg" id="w-pair"></div>
+        </div>
+      </div>
+      <div class="readouts">
+        <div class="ro"><div class="k">Baseline</div><div class="v" id="w-base">—</div></div>
+        <div class="ro"><div class="k">ABTT &middot; remove top-10</div><div class="v" id="w-abtt">—</div></div>
+        <div class="ro"><div class="k">ZCA whitening</div><div class="v" id="w-zca">—</div></div>
+      </div>
+      <div class="chartwrap"><svg id="w-svg" viewBox="0 0 900 340" width="100%"></svg></div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--rand)"></span>baseline</span>
+        <span><span class="swatch" style="background:var(--hub)"></span>ABTT (directed removal)</span>
+        <span><span class="swatch" style="background:var(--whiten)"></span>ZCA whitening (full isotropy)</span>
+      </div>
+      <p class="note" id="w-foot" style="margin-top:12px"></p>
+    </div>
+  </div>
+  <div class="wrap" style="padding:0">
+    <p>This is evidence <em>for</em> the localized account, not against it. Whitening and ablation act on the same
+    high-variance directions, one rescaling them, the other removing them, so the fact that both work pins the
+    effect on that subspace. The random-direction control rules out generic rank reduction; whitening hitting
+    exactly the top-variance directions rules out the effect being a narrow set of special coordinates. ABTT keeps
+    one practical edge: it is a fixed rank-10 projection you can drop into a frozen decoder mid-forward, where you
+    cannot estimate and apply a full whitening transform to the running activations and only need the hub
+    directions gone.</p>
+  </div>
+</div></section>
+
+<section id="dial"><div class="wide">
+  <div class="wrap" style="padding:0">
+    <div class="eyebrow left">06 &middot; The bidirectional test</div>
+    <h2>Turn the dial both ways</h2>
+    <p>If that subspace really carries the failure, it should work in reverse. Projecting it out (dialing
+    <em>down</em>) restores retrieval. Scaling it up (dialing <em>up</em>) should manufacture hubness on demand.
+    It does, on every pair and both encoders, while amplifying random directions does almost nothing. Drag the
+    dial from <b>ablate</b> through <b>baseline</b> to <b>8&times;</b> and watch retrieval collapse.</p>
+  </div>
+  <div class="exp" id="exp-dial">
+    <div class="head"><div class="t">The hub-subspace dial</div>
+      <div class="d">Scaling the top-10 hub directions by &alpha;, then renormalizing. Layer 1, 20 seeds. Every number is measured.</div></div>
+    <div class="body">
+      <div class="controls">
+        <div class="control" style="min-width:240px">
+          <label>Hub-subspace scale <span class="kbd" id="d-xlab">baseline</span></label>
+          <input type="range" id="d-k" min="0" max="7" step="1" value="1" aria-label="Hub-subspace scale alpha">
+          <div id="d-hint" class="draghint">drag the dial &rarr;</div>
+        </div>
+        <div class="control" style="flex:0;min-width:auto">
+          <label>Encoder</label>
+          <div class="seg" id="d-enc"><button data-v="mbert" class="on">mBERT</button><button data-v="xlmr">XLM-R</button></div>
+        </div>
+        <div class="control" style="flex:0;min-width:auto">
+          <label>Language pair</label>
+          <div class="seg" id="d-pair"></div>
+        </div>
+      </div>
+      <div style="margin:6px 0 12px"><span class="dialstate" id="d-state">baseline</span></div>
+      <div class="readouts">
+        <div class="ro"><div class="k">P@1 retrieval</div><div class="v" id="d-p1">—</div></div>
+        <div class="ro"><div class="k">Biggest hub</div><div class="v" id="d-mh">—</div></div>
+        <div class="ro"><div class="k">Never retrieved</div><div class="v" id="d-nv">—</div></div>
+      </div>
+      <div class="chartwrap"><svg id="d-svg" viewBox="0 0 900 340" width="100%"></svg></div>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--hub)"></span>hub-subspace dial (P@1)</span>
+        <span><span class="dot" style="background:#fff;box-shadow:0 0 0 2px var(--amp)"></span>random-amplify &times;4 (control)</span>
+        <span><span class="dot" style="background:var(--hub)"></span>current position</span>
+      </div>
+      <p class="note" id="d-foot" style="margin-top:12px"></p>
+    </div>
+  </div>
+  <div class="wrap" style="padding:0">
+    <p>The control is the point: random-amplify (the open marker) barely moves, so the collapse is specific to the
+    hub subspace, not to perturbing the vectors. One honest wrinkle the dial shows: on the milder-hub mBERT,
+    amplification <em>concentrates</em> in-degree into bigger hubs, but on the already hub-saturated XLM-R it
+    <em>disperses</em> in-degree even as retrieval still collapses. The behavioral failure is what is common to
+    both; the in-degree shape is regime-dependent.</p>
+  </div>
+</div></section>
+
+<section id="fixes"><div class="wrap">
+  <div class="eyebrow left">07 &middot; Connecting to known fixes</div>
+  <h2>The classic fixes touch the same structure</h2>
+  <p>Bilingual lexicon induction already has hubness corrections that act at retrieval time,
+  like CSLS and inverted softmax. They flatten the same in-degree distribution our
+  ablation targets: on mBERT, cosine in-degree skew of 1.7&ndash;2.5 drops under CSLS to
+  0.9&ndash;1.4; on XLM-R, where cosine skew runs 9.7&ndash;15.8, the inverted softmax
+  flattens it to 1.9&ndash;3.7. Much of the hub mass they correct lives in the localized
+  subspace, and projecting that subspace out reproduces much of CSLS's flattening on its
+  own. The overlap is real but not total: ABTT plus CSLS still beats either alone, so the
+  two interventions share a large common factor and each also touches structure the other
+  misses. The field's standard fixes have a representational target, and naming it lets
+  one choose where to intervene.</p>
+  <figure>
+    <img src="assets/fig_lineage.png" alt="Retrieval-side hubness fixes flatten the same in-degree distribution the localized subspace carries">
+    <figcaption><b>Same structure, two interventions.</b> (a) In-degree skewness under plain
+    cosine, CSLS, and inverted softmax across model and pair; the retrieval fixes flatten the
+    distribution, strongly so where hubness is severe (XLM-R). (b) Projecting out the localized
+    subspace (ABTT) reproduces much of CSLS's flattening, and ABTT+CSLS is only partly additive.</figcaption>
+  </figure>
+</div></section>
+
+<section id="takeaways"><div class="wrap">
+  <div class="eyebrow left">08 &middot; Takeaways</div>
+  <h2>What to remember</h2>
+  <div class="cards">
+    <div class="tk"><div class="n">01</div><h4>It is hubness, not missing alignment</h4>
+      <p>A few hub words catch up to 134 queries while 82% of the gallery is never retrieved.
+      Lexical ambiguity, not frequency, predicts who fails, and context dissolves the hubs.</p></div>
+    <div class="tk"><div class="n">02</div><h4>The subspace is a causal dial</h4>
+      <p>Project it out and stranded words return (0.11 to 0.18 on en&ndash;es, matching CSLS);
+      amplify it and retrieval collapses (P@1 0.61 to 0.21). Matched random directions do neither.</p></div>
+    <div class="tk"><div class="n">03</div><h4>Concentrated, portable, not low-dimensional</h4>
+      <p>Ten directions hold 14&ndash;23% of the variance while effective rank stays in the
+      hundreds. Fit on en&ndash;es, the subspace transfers to the other pairs and to held-out words.</p></div>
+    <div class="tk"><div class="n">04</div><h4>It explains the classic fixes</h4>
+      <p>CSLS and inverted softmax flatten the same in-degree distribution at read-out. A frozen
+      decoder carries the subspace too: +0.09 nats toward the correct word, top-1 unchanged.</p></div>
+  </div>
+</div></section>
+
+<section id="paper"><div class="wrap">
+  <div class="eyebrow left">09 &middot; Cite</div>
+  <h2>BibTeX</h2>
+  <pre class="bib">@inproceedings{anon2026hubnessdial,
+  title     = {Hubness, Not Misalignment: A Causal Dial for Cross-Lingual Word Retrieval in Multilingual Models},
+  author    = {Anonymous},
+  booktitle = {Under review},
+  year      = {2026}
+}</pre>
+  <p class="note">Numbers in the interactives are read directly from the paper's experiment outputs
+  (layer&nbsp;1; ablation, whitening, and dial over 5&ndash;20 seeds). Figures are the paper's own figures.</p>
+</div></section>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const D = window.DATA;
+  const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const COL=()=>({hub:cssv('--hub'),amp:cssv('--amp'),rand:cssv('--rand'),good:cssv('--good'),
+    ink:cssv('--ink'),muted:cssv('--muted'),faint:cssv('--faint'),line:cssv('--grid'),
+    grid:cssv('--grid'),edge:cssv('--edge'),node:cssv('--node')});
+  const REDRAW=[];
+  const fmtPct = v => (v*100).toFixed(1)+'%';
+  function svgEl(t,a){const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+  function clear(s){while(s.firstChild)s.removeChild(s.firstChild);}
+
+  // context-length chart
+  const LZ = (function(){
+    const ks = D.length.ks; // [1,2,3,5,10,99]
+    const langs = Object.keys(D.length.encoders.mbert);
+    let enc='mbert', hl='en-zh', ki=0;
+    const svg=document.getElementById('lz-svg');
+    const W=900,H=340,pad={l:54,r:18,t:18,b:42};
+    const xOf=i=> pad.l + (i/(ks.length-1))*(W-pad.l-pad.r);
+    const yOf=v=> H-pad.b - v*(H-pad.t-pad.b);
+    function klabel(k){return k>=99?'full sentence':(k+(k==1?' token':' tokens'));}
+    function draw(){
+      const C=COL();
+      clear(svg);
+      for(let g=0;g<=1.0001;g+=0.25){const y=yOf(g);
+        svg.appendChild(svgEl('line',{x1:pad.l,y1:y,x2:W-pad.r,y2:y,stroke:C.line,'stroke-width':1}));
+        svg.appendChild(svgEl('text',{x:pad.l-8,y:y+4,'text-anchor':'end',class:'axis'})).textContent=g.toFixed(2);
+      }
+      ks.forEach((k,i)=>{const x=xOf(i);
+        svg.appendChild(svgEl('text',{x:x,y:H-pad.b+18,'text-anchor':'middle',class:'axis'})).textContent=k>=99?'full':k;});
+      svg.appendChild(svgEl('text',{x:(W)/2,y:H-6,'text-anchor':'middle',class:'axislab'})).textContent='context length (tokens, log-spaced)';
+      const data=D.length.encoders[enc];
+      langs.forEach(l=>{
+        const pts=data[l].map((v,i)=>xOf(i)+','+yOf(v)).join(' ');
+        const on=(l===hl);
+        svg.appendChild(svgEl('polyline',{points:pts,fill:'none',stroke:on?C.amp:C.edge,
+          'stroke-width':on?3:1.4,opacity:on?1:.7}));
+      });
+      const mean=ks.map((_,i)=>langs.reduce((s,l)=>s+data[l][i],0)/langs.length);
+      svg.appendChild(svgEl('polyline',{points:mean.map((v,i)=>xOf(i)+','+yOf(v)).join(' '),fill:'none',
+        stroke:C.hub,'stroke-width':3.5}));
+      mean.forEach((v,i)=>svg.appendChild(svgEl('circle',{cx:xOf(i),cy:yOf(v),r:i===ki?6:3.5,fill:C.hub})));
+      const xm=xOf(ki);
+      svg.appendChild(svgEl('line',{x1:xm,y1:pad.t,x2:xm,y2:H-pad.b,stroke:C.hub,'stroke-width':1.5,'stroke-dasharray':'4 4',opacity:.6}));
+      svg.appendChild(svgEl('circle',{cx:xm,cy:yOf(data[hl][ki]),r:6,fill:'#fff',stroke:C.amp,'stroke-width':3}));
+      document.getElementById('lz-mean').textContent=fmtPct(mean[ki]);
+      document.getElementById('lz-hl').textContent=fmtPct(data[hl][ki]);
+      document.getElementById('lz-hl-name').textContent=hl.replace('en-','en→');
+      const lift=data[hl][ki]-data[hl][0];
+      document.getElementById('lz-lift').innerHTML=(lift>=0?'+':'')+fmtPct(lift).replace('%','')+'<small> pts</small>';
+      document.getElementById('lz-kval').textContent=klabel(ks[ki]);
+    }
+    // highlight: a few representative languages
+    const langSeg=document.getElementById('lz-lang');
+    ['en-zh','en-de','en-fr','en-ar','en-ko'].forEach((l,i)=>{
+      const b=document.createElement('button');b.textContent=l.replace('en-','');b.dataset.v=l;if(l===hl)b.className='on';
+      b.onclick=()=>{hl=l;[...langSeg.children].forEach(c=>c.classList.toggle('on',c.dataset.v===l));draw();};
+      langSeg.appendChild(b);
+    });
+    document.getElementById('lz-enc').addEventListener('click',e=>{if(e.target.dataset.v){enc=e.target.dataset.v;
+      [...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c.dataset.v===enc));draw();}});
+    const kr=document.getElementById('lz-k');kr.max=ks.length-1;
+    kr.addEventListener('input',()=>{ki=+kr.value;draw();});
+    draw(); REDRAW.push(draw);
+  })();
+
+  // hub-subspace dial
+  const DIAL=(function(){
+    const pairs=Object.keys(D.amplify.encoders.mbert.pairs);
+    let enc='mbert', pair='en-es', idx=1;
+    const svg=document.getElementById('d-svg');
+    const W=900,H=340,pad={l:54,r:18,t:20,b:46};
+    function cur(){return D.amplify.encoders[enc].pairs[pair];}
+    function xs(){return cur().dial.map(d=>d.x);}
+    const xpos=(x,xmin,xmax)=>{const lx=Math.log(x),a=Math.log(xmin),b=Math.log(xmax);
+      return pad.l+((lx-a)/(b-a))*(W-pad.l-pad.r);};
+    function draw(){
+      const C=COL();
+      clear(svg);
+      const dial=cur().dial; const X=xs(); const xmin=Math.min(...X),xmax=Math.max(...X);
+      const yOf=v=> H-pad.b - v*(H-pad.t-pad.b);
+      for(let g=0;g<=1.0001;g+=0.25){const y=yOf(g);
+        svg.appendChild(svgEl('line',{x1:pad.l,y1:y,x2:W-pad.r,y2:y,stroke:C.line,'stroke-width':1}));
+        svg.appendChild(svgEl('text',{x:pad.l-8,y:y+4,'text-anchor':'end',class:'axis'})).textContent=g.toFixed(2);}
+      const xb=xpos(1,xmin,xmax);
+      svg.appendChild(svgEl('line',{x1:xb,y1:pad.t,x2:xb,y2:H-pad.b,stroke:C.edge,'stroke-width':1}));
+      dial.forEach((d,i)=>{svg.appendChild(svgEl('text',{x:xpos(d.x,xmin,xmax),y:H-pad.b+18,'text-anchor':'middle',class:'axis'})).textContent=d.label;});
+      svg.appendChild(svgEl('text',{x:W/2,y:H-6,'text-anchor':'middle',class:'axislab'})).textContent='← ablate    hub-subspace scale α    amplify →';
+      svg.appendChild(svgEl('rect',{x:xb,y:pad.t,width:(W-pad.r)-xb,height:H-pad.b-pad.t,fill:C.amp,opacity:.05}));
+      const pts=dial.map(d=>xpos(d.x,xmin,xmax)+','+yOf(d.p1)).join(' ');
+      svg.appendChild(svgEl('polyline',{points:pts,fill:'none',stroke:C.hub,'stroke-width':3.5}));
+      dial.forEach((d,i)=>svg.appendChild(svgEl('circle',{cx:xpos(d.x,xmin,xmax),cy:yOf(d.p1),r:3.5,fill:C.hub})));
+      // random-amplify control (open marker)
+      const ra=cur().randAmp;
+      svg.appendChild(svgEl('circle',{cx:xpos(ra.x,xmin,xmax),cy:yOf(ra.p1),r:6.5,fill:'#fff',stroke:C.amp,'stroke-width':3}));
+      const d=dial[idx]; const cx=xpos(d.x,xmin,xmax),cy=yOf(d.p1);
+      svg.appendChild(svgEl('line',{x1:cx,y1:pad.t,x2:cx,y2:H-pad.b,stroke:C.hub,'stroke-width':1.5,'stroke-dasharray':'4 4',opacity:.55}));
+      svg.appendChild(svgEl('circle',{cx:cx,cy:cy,r:7,fill:C.hub,stroke:'#fff','stroke-width':2}));
+      const amp = d.x>1.0001, abl = d.x<0.99;
+      const col = abl?C.good:(amp?C.amp:C.ink);
+      const p1=document.getElementById('d-p1');p1.textContent=fmtPct(d.p1);p1.style.color=col;
+      document.getElementById('d-mh').innerHTML=Math.round(d.maxhub)+'<small> queries</small>';
+      document.getElementById('d-nv').textContent=fmtPct(d.never);
+      const st=document.getElementById('d-state');
+      st.textContent = abl?'ablated · hub subspace removed':(amp?('amplified · α = '+d.label.replace('×','')) : 'baseline');
+      st.style.background = abl?'rgba(0,158,115,.18)':(amp?'rgba(213,94,0,.18)':'rgba(120,134,156,.18)');
+      st.style.color = col;
+      document.getElementById('d-xlab').textContent = abl?'ablate':(amp?('×'+d.label.replace('×','')):'baseline');
+      const base=dial[1], a8=dial[dial.length-1];
+      document.getElementById('d-foot').innerHTML =
+        'At baseline, P@1 is '+fmtPct(base.p1)+'. Amplifying the hub subspace 8× drops it to '+fmtPct(a8.p1)+
+        ', while random-amplify ×4 only reaches '+fmtPct(ra.p1)+'. The collapse is specific to this subspace.';
+    }
+    const pairSeg=document.getElementById('d-pair');
+    pairs.forEach(p=>{const b=document.createElement('button');b.textContent=p.replace('en-','');b.dataset.v=p;
+      if(p===pair)b.className='on';b.onclick=()=>{pair=p;[...pairSeg.children].forEach(c=>c.classList.toggle('on',c.dataset.v===p));draw();};
+      pairSeg.appendChild(b);});
+    document.getElementById('d-enc').addEventListener('click',e=>{if(e.target.dataset.v){enc=e.target.dataset.v;
+      [...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c.dataset.v===enc));draw();}});
+    const r=document.getElementById('d-k');r.max=cur().dial.length-1;
+    let userTouched=false;
+    function hideHint(){const h=document.getElementById('d-hint');if(h){h.style.animation='none';h.style.opacity=0;}}
+    r.addEventListener('input',()=>{userTouched=true;hideHint();idx=+r.value;draw();});
+    document.getElementById('d-enc').addEventListener('click',()=>{userTouched=true;hideHint();});
+    document.getElementById('d-pair').addEventListener('click',()=>{userTouched=true;hideHint();});
+    draw(); REDRAW.push(draw);
+    // one-time auto-demo when scrolled into view
+    const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let played=false;
+    function sweep(){
+      if(played||userTouched)return; played=true;
+      const seq=[1,2,3,4,5,6,7,6,5,4,3,2,1]; let s=0;
+      (function step(){ if(userTouched)return; idx=seq[s]; r.value=idx; draw();
+        s++; if(s<seq.length) setTimeout(step,118); else hideHint(); })();
+    }
+    if(!reduce && 'IntersectionObserver' in window){
+      const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){sweep();io2.disconnect();}});},{threshold:.55});
+      io2.observe(document.getElementById('exp-dial'));
+    } else { hideHint(); }
+  })();
+
+  // hub-graph schematic
+  (function(){
+    const svg=document.getElementById('h-svg'); if(!svg) return;
+    const W=900,H=380, NQ=26, NG=14;
+    const qx=150, gx=748, top=30, bot=H-30;
+    const qy=i=> top + (i/(NQ-1))*(bot-top);
+    const gy=j=> top + (j/(NG-1))*(bot-top);
+    const hubs=[3,7,11], wordT=[], sentT=[], cross=[];
+    for(let i=0;i<NQ;i++){wordT[i]=hubs[i%3]; sentT[i]=i%NG; cross[i]=(i+0.5)/NQ;}
+    function draw(t){
+      const C=COL();
+      clear(svg);
+      const tgt=[], deg=new Array(NG).fill(0);
+      for(let i=0;i<NQ;i++){ tgt[i]=(t>=cross[i])?sentT[i]:wordT[i]; deg[tgt[i]]++; }
+      for(let i=0;i<NQ;i++){ const j=tgt[i], hub=deg[j]>=5;
+        svg.appendChild(svgEl('path',{d:`M${qx},${qy(i)} C ${(qx+gx)/2},${qy(i)} ${(qx+gx)/2},${gy(j)} ${gx},${gy(j)}`,
+          fill:'none',stroke:hub?C.amp:C.edge,'stroke-width':hub?1.6:1,opacity:hub?0.55:0.42})); }
+      for(let i=0;i<NQ;i++) svg.appendChild(svgEl('circle',{cx:qx,cy:qy(i),r:3.4,fill:C.node}));
+      for(let j=0;j<NG;j++){ const d=deg[j], r=4+d*2.1, hub=d>=5, dead=d===0;
+        const surf=cssv('--surface');
+        svg.appendChild(svgEl('circle',{cx:gx,cy:gy(j),r:r,fill:dead?surf:(hub?C.amp:C.hub),
+          stroke:dead?C.edge:surf,'stroke-width':dead?1.5:2}));
+        if(d>=3) svg.appendChild(svgEl('text',{x:gx+r+6,y:gy(j)+4,class:'axis','font-weight':'700',fill:hub?C.amp:C.hub})).textContent=d; }
+      svg.appendChild(svgEl('text',{x:qx,y:16,'text-anchor':'middle',class:'axislab'})).textContent='queries';
+      svg.appendChild(svgEl('text',{x:gx,y:16,'text-anchor':'middle',class:'axislab'})).textContent='candidate words';
+      document.getElementById('h-top').innerHTML=Math.max(...deg)+'<small> queries</small>';
+      document.getElementById('h-never').innerHTML=deg.filter(d=>d===0).length+'<small> of '+NG+'</small>';
+      document.getElementById('h-lab').textContent= t<0.15?'single words':(t>0.85?'full sentences':'short phrases');
+    }
+    const r=document.getElementById('h-t'); let curT=0;
+    r.addEventListener('input',()=>{curT=+r.value/100;draw(curT);});
+    draw(0); REDRAW.push(()=>draw(curT));
+  })();
+
+  // whitening vs ablation panel
+  (function(){
+    const data=D.whitening; if(!data) return;
+    const svg=document.getElementById('w-svg'); if(!svg) return;
+    const ENCLAB={mbert:'mBERT',xlmr:'XLM-R'};
+    const pairs=Object.keys(data.mbert);
+    let enc='mbert', pair='en-es', metric='anti';
+    const W=900,H=340,pad={l:60,r:18,t:26,b:52};
+    const META={
+      anti:{label:'anti-hub recovery',fmt:v=>fmtPct(v),better:'higher',dir:1,eps:0.008},
+      p1:{label:'P@1 retrieval',fmt:v=>fmtPct(v),better:'higher',dir:1,eps:0.008},
+      skew:{label:'in-degree skew',fmt:v=>v.toFixed(2),better:'lower',dir:-1,eps:0.15}
+    };
+    function row(){return data[enc][pair];}
+    function verb(zca,abtt,m){const d=(zca-abtt)*m.dir; return d>m.eps?'beats':(d<-m.eps?'trails':'matches');}
+    function draw(){
+      const C=COL(); clear(svg);
+      const r=row(), m=META[metric];
+      const conds=[{lab:'baseline',col:C.rand,v:r.baseline[metric]},
+                   {lab:'ABTT',col:C.hub,v:r.ABTT[metric]},
+                   {lab:'ZCA whitening',col:cssv('--whiten'),v:r.ZCA[metric]}];
+      const vmax=(Math.max(...conds.map(c=>c.v))||1)*1.18;
+      const yOf=v=>H-pad.b-(v/vmax)*(H-pad.t-pad.b);
+      for(let g=0;g<=4;g++){const val=vmax*g/4,y=yOf(val);
+        svg.appendChild(svgEl('line',{x1:pad.l,y1:y,x2:W-pad.r,y2:y,stroke:C.line,'stroke-width':1}));
+        svg.appendChild(svgEl('text',{x:pad.l-8,y:y+4,'text-anchor':'end',class:'axis'})).textContent=m.fmt(val);}
+      const n=conds.length, slot=(W-pad.l-pad.r)/n, bw=Math.min(150,slot*0.46);
+      conds.forEach((c,i)=>{const cx=pad.l+slot*(i+0.5),y=yOf(c.v),h=(H-pad.b)-y;
+        svg.appendChild(svgEl('rect',{x:cx-bw/2,y:y,width:bw,height:Math.max(0,h),rx:7,fill:c.col}));
+        svg.appendChild(svgEl('text',{x:cx,y:y-9,'text-anchor':'middle',class:'axislab',fill:c.col,'font-weight':'800'})).textContent=m.fmt(c.v);
+        svg.appendChild(svgEl('text',{x:cx,y:H-pad.b+20,'text-anchor':'middle',class:'axislab'})).textContent=c.lab;});
+      svg.appendChild(svgEl('text',{x:W/2,y:H-8,'text-anchor':'middle',class:'axis'})).textContent=m.label+'  ('+m.better+' is better)';
+      document.getElementById('w-base').textContent=m.fmt(r.baseline[metric]);
+      document.getElementById('w-abtt').textContent=m.fmt(r.ABTT[metric]);
+      document.getElementById('w-zca').textContent=m.fmt(r.ZCA[metric]);
+      const pl=pair.replace('en-','en→');
+      document.getElementById('w-foot').innerHTML=
+        'On '+ENCLAB[enc]+' '+pl+', whitening '+verb(r.ZCA[metric],r.ABTT[metric],m)+
+        ' directed ablation on '+m.label+' ('+m.fmt(r.ZCA[metric])+' vs '+m.fmt(r.ABTT[metric])+
+        '), with baseline at '+m.fmt(r.baseline[metric])+'. Same high-variance subspace, one rescaled, one removed.';
+    }
+    const pairSeg=document.getElementById('w-pair');
+    pairs.forEach(p=>{const b=document.createElement('button');b.textContent=p.replace('en-','');b.dataset.v=p;
+      if(p===pair)b.className='on';b.onclick=()=>{pair=p;[...pairSeg.children].forEach(c=>c.classList.toggle('on',c.dataset.v===p));draw();};
+      pairSeg.appendChild(b);});
+    document.getElementById('w-enc').addEventListener('click',e=>{if(e.target.dataset.v){enc=e.target.dataset.v;
+      [...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c.dataset.v===enc));draw();}});
+    document.getElementById('w-metric').addEventListener('click',e=>{if(e.target.dataset.v){metric=e.target.dataset.v;
+      [...e.currentTarget.children].forEach(c=>c.classList.toggle('on',c.dataset.v===metric));draw();}});
+    draw(); REDRAW.push(draw);
+  })();
+
+  // scrollspy nav highlight
+  const navlinks=[...document.querySelectorAll('nav .links a')];
+  const io=new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){
+      navlinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id)); }});
+  },{rootMargin:'-45% 0px -50% 0px',threshold:0});
+  navlinks.map(a=>document.getElementById(a.getAttribute('href').slice(1)))
+    .filter(Boolean).forEach(s=>io.observe(s));
+
+  // theme toggle
+  (function(){
+    const root=document.documentElement, btn=document.getElementById('themebtn');
+    function apply(t){ root.setAttribute('data-theme',t);
+      try{localStorage.setItem('theme',t)}catch(e){}
+      REDRAW.forEach(f=>{try{f()}catch(e){}}); }
+    let saved=null; try{saved=localStorage.getItem('theme')}catch(e){}
+    const sysDark=window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+    apply(saved || (sysDark?'dark':'light'));
+    if(btn) btn.addEventListener('click',()=>apply(root.getAttribute('data-theme')==='dark'?'light':'dark'));
+  })();
+})();
+</script>
+</body>
+</html>
