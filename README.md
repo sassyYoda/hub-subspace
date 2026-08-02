@@ -19,9 +19,11 @@ the top ten directions hold about 14% of the variance on mBERT and 23% on XLM-R
 while effective rank stays at several hundred of 768. The subspace estimated on
 en-es transfers unchanged to the other four pairs (113% and 93% of the
 pair-native recovery gain on mBERT and XLM-R) and across disjoint word splits.
-A frozen Llama-3-8B carries the same subspace: removing it raises the correct
-token's log-probability (+0.09 nats, 8/8 seeds) without changing the top-1
-output, which we read as a property of the representation, not a
+A frozen Llama-3-8B carries the same subspace: removing it raises the gold
+word's *first-token* log-probability (+0.09 nats, 8/8 seeds) without changing
+the top-1 output, but scored over the whole word the sign reverses (-0.061
+nats/token, 7/8 seeds) and full-word exact match is flat (0.301 to 0.298).
+We read the decoder result as a property of the representation, not a
 translation-quality gain. CSLS and inverted softmax flatten the same in-degree
 distribution the ablation targets. This repository holds the library and the
 experiment scripts that produce those results.
@@ -143,7 +145,8 @@ over seeds.
 | De-hubbing composes with a learned Procrustes map | mBERT `+0.010`–`+0.016` (4 pairs); XLM-R `+0.07`–`+0.09` (5 pairs) | `python experiments/E5_map_interaction.py` |
 | CSLS and inverted softmax flatten the same distribution | skew `1.7`–`2.5` → `0.9`–`1.4` under CSLS | `MODEL=mbert python experiments/csls_lineage.py` |
 | Whitening corroborates the localization | ZCA matches or beats ABTT | `MODEL=mbert python experiments/whitening_stability.py` |
-| The subspace is present in a frozen decoder | `+0.09` nats, `8/8` seeds; top-1 unchanged `0.459` → `0.462` | `N_SEEDS=8 python experiments/downstream_patch.py` |
+| The subspace is present in a frozen decoder (first-token metrics) | `+0.09` nats, `8/8` seeds; top-1 unchanged `0.459` → `0.462` | `N_SEEDS=8 python experiments/downstream_patch.py` |
+| Full-word decoder metrics reverse the sign | seq log-prob `-0.061` nats/token (`7/8` seeds); exact match `0.301` → `0.298` | `N_SEEDS=8 python experiments/downstream_patch.py` |
 | Predicted sentence-level effect, one-sided | XLM-R `+0.016` (5/5 seeds), mBERT `-0.017` (0/5) | `python experiments/xnli_analyze.py` |
 
 Most scripts write JSON to `results/` and print the reported fields on completion;

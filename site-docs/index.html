@@ -245,7 +245,8 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
   </div>
   <div class="exp" id="exp-length">
     <div class="head"><div class="t">Accuracy vs. context length</div>
-      <div class="d">Identity cosine retrieval, layer 1. Each thin line is one language; the bold line is the mean.</div></div>
+      <div class="d">FLORES, masked-mean pooling at layer 8, mean-centered cosine retrieval. Prefixes are cut at word
+      boundaries per language (Chinese segmented with jieba). Each thin line is one language; the bold line is the mean.</div></div>
     <div class="body">
       <div class="controls">
         <div class="control" style="max-width:230px">
@@ -327,10 +328,13 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
   on the other four pairs at 113% of the pair-native gain on mBERT and 93% on XLM-R,
   holds on queries whose English word never entered the estimation, and a subspace fit on
   a disjoint half of the words de-hubs the held-out half as well as the in-sample fit. A
-  frozen Llama-3-8B carries the same structure: removing it shifts the next-token
-  distribution toward the correct word (+0.09 nats, positive in 8/8 seeds) without
-  changing the top-1 output, a scoped check that the subspace is a property of the
-  representation, not of encoder retrieval.</p>
+  frozen Llama-3-8B carries the same structure, though the downstream effect is narrower
+  than the encoder one: removing the subspace raises the log-probability of the gold
+  word's <em>first token</em> (+0.09 nats, positive in 8/8 seeds) without changing the
+  top-1 output, but scored over the <em>whole</em> word the sign reverses
+  (&minus;0.06 nats per token, negative in 7/8 seeds) and full-word exact match is flat
+  (0.301 to 0.298). We report the decoder as a scoped check that the subspace is a
+  property of the representation, not of encoder retrieval, not as a downstream win.</p>
   <figure>
     <img src="assets/fig_ablation_breadth.png" alt="Ablation across pairs and encoders with random control">
     <figcaption><b>Ablation with a random control.</b> Hub-ablation (blue) lifts anti-hub recovery far above
@@ -484,7 +488,9 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
       hundreds. Fit on en&ndash;es, the subspace transfers to the other pairs and to held-out words.</p></div>
     <div class="tk"><div class="n">04</div><h4>It explains the classic fixes</h4>
       <p>CSLS and inverted softmax flatten the same in-degree distribution at read-out. A frozen
-      decoder carries the subspace too: +0.09 nats toward the correct word, top-1 unchanged.</p></div>
+      decoder carries the subspace too: +0.09 nats on the gold word's first token, top-1 unchanged.
+      Scored over the whole word the sign reverses (&minus;0.06 nats), so the decoder is a scoped
+      check on the representation, not a downstream win.</p></div>
   </div>
 </div></section>
 
