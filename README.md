@@ -9,11 +9,11 @@ collapses; matched random directions do neither.
 Paper: **Hubness, Not Misalignment: A Causal Dial for Cross-Lingual Word
 Retrieval in Multilingual Models** (under review; arXiv link TBD).
 
-Using bilingual lexicon induction (BLI) as a behavioral probe across eleven
-languages and two encoders, the paper shows that word-level retrieval is the
+Using truncated sentence retrieval across eleven languages and dictionary induction
+across five pairs, both on two encoders, the paper shows that word-level retrieval is the
 worst case of a smooth context-length curve, and that the bottleneck is hubness:
 a few hub words are the nearest neighbor of up to 134 queries while 82% of the
-gallery is never retrieved, with lexical ambiguity the strongest per-word
+gallery is never retrieved (mBERT en-es, single words), with lexical ambiguity the strongest per-word
 predictor under controls. The hub structure is concentrated, not low-dimensional:
 the top ten directions hold about 14% of the variance on mBERT and 23% on XLM-R
 while effective rank stays at several hundred of 768. The subspace estimated on
@@ -123,17 +123,21 @@ uv run python experiments/xnli_analyze.py                      # XNLI transfer v
 ## Results
 
 Headline numbers from the paper and the command that reproduces each. Encoder rows are
-layer 1, identity retrieval (raw cosine, no learned map). Each script's own defaults are the
+layer 1, identity retrieval (raw cosine, no learned map), except the `length_curve.py` and
+`xnli_hubness.py` rows, which are layer 8 masked-mean on FLORES bitext. Each script's own defaults are the
 ones that produced the reported run, except where a variable is given in the command; the
 per-script settings are in each file's docstring header. Confidence intervals are Student-t
-over seeds.
+over seeds. A run with a restricted `TARGETS`/`PAIRS` writes a tagged filename where the script
+supports it; for the `PAIRS`-based scripts it overwrites the full-sweep JSON, so copy `results/`
+aside first if you want to keep it.
 
 | Paper claim | Number | Command |
 |---|---|---|
-| Sentence retrieval is near-perfect, word retrieval is not | `0.96`–`1.00` vs `0.2`–`0.6` P@1 | `MODEL=mbert python experiments/length_curve.py` |
+| Sentence retrieval is near-perfect, word retrieval is not | full sentences `0.96`–`1.00` vs single words `0.007`–`0.135` P@1 | `MODEL=mbert python experiments/length_curve.py` |
 | Length, not distinctiveness, drives the curve | random-bag stays near `0` | `python experiments/length_confound_control.py` |
-| Chinese is segmented with jieba, not whitespace | en-zh single-token `0.059` (mBERT) / `0.023` (XLM-R) | `MODEL=mbert TARGETS=zh python experiments/length_curve.py` |
-| Single-token hubness is severe (mBERT en-es) | top hub = NN of `134` queries, `82%` never retrieved | `MODEL=mbert python experiments/hub_ablation.py` |
+| Chinese is segmented with jieba, not whitespace | en-zh single-token `0.059` (mBERT) / `0.023` (XLM-R) | `MODEL=mbert TARGETS=zh python experiments/length_curve.py` (and `MODEL=xlmr`) |
+| Single-token hubness is severe (mBERT en-es) | at `k=1`, top hub = NN of `134` queries (`"El"`), `82%` never retrieved; at full sentences, `2` and `0.4%` | `MODEL=mbert TARGETS=es HUBSTATS=1 python experiments/length_curve.py` |
+| Dictionary retrieval is skewed too (mBERT en-es) | peak in-degree `10`, `36%` never retrieved | `MODEL=mbert python experiments/hub_ablation.py` |
 | Ambiguity predicts failure, not rarity | polysemy is the largest standardised coefficient with all five factors fit jointly | `python experiments/perword_logreg.py` |
 | Accuracy and skew move together across depth | mBERT BLI peaks at layer 4 | `MODEL=mbert python experiments/layer_sweep.py` |
 | Ablating the hub subspace recovers anti-hubs (mBERT) | `0.07`–`0.12` → `0.14`–`0.19`, random stays at baseline | `MODEL=mbert python experiments/hub_ablation.py` |

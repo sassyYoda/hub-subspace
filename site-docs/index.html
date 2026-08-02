@@ -199,9 +199,9 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
     same cannot be said for single words. This gap is often attributed to word representations
     being only partially aligned. We show that this failure stems largely from <em>hubness</em>,
     wherein a handful of words (hubs) become the nearest neighbor for far too many translation
-    queries, stranding the rest of the vocabulary (anti-hubs). Via bilingual lexicon induction
-    across a set of eleven diverse languages, we find a few words to be the nearest neighbors of
-    up to 134 queries each, while 82% of the target vocabulary remains stranded; this imbalance
+    queries, stranding the rest of the vocabulary (anti-hubs). Truncating sentence retrieval down to
+    single words across eleven diverse languages, we find a few words to be the nearest neighbors of
+    up to 134 queries each (English&ndash;Spanish), while 82% of the target words are never retrieved; this imbalance
     and the large hub mass gradually dissolve as the amount of context grows and lexical
     ambiguity disappears. We find this hubness to be carried by ten high-variance directions of
     the single-token activation space, emerging as a <b>bidirectional causal dial</b>. Projecting
@@ -250,7 +250,7 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
     <div class="body">
       <div class="controls">
         <div class="control" style="max-width:230px">
-          <label>Context length <span class="kbd" id="lz-kval">1 token</span></label>
+          <label>Context length <span class="kbd" id="lz-kval">1 word</span></label>
           <input type="range" class="plain" id="lz-k" min="0" max="5" step="1" value="0">
         </div>
         <div class="control" style="flex:0;min-width:auto">
@@ -320,7 +320,7 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
   XLM-R: a concentration, not a low-dimensional space.</p>
   <p>We project out the top directions (all-but-the-top) and previously unretrievable words
   recover, on all five language pairs and both encoders: on mBERT recovery rises from
-  0.07&ndash;0.12 to 0.14&ndash;0.19, matching CSLS, and on the more hub-prone XLM-R from
+  0.07&ndash;0.12 to 0.14&ndash;0.19, matching CSLS on every pair but en&ndash;zh, and on the more hub-prone XLM-R from
   0.05&ndash;0.09 to 0.18&ndash;0.22, above CSLS. Projecting out the same number of
   <em>random</em> directions does nothing; that control is what pins the effect on the
   high-variance directions rather than on generic rank reduction. The subspace also
@@ -351,10 +351,10 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
     anisotropy, not a real subspace. We test that head-on.</p>
     <p>ZCA whitening rescales <em>every</em> direction to equal variance, full isotropy, instead of removing the
     top ten. If the recovery needed one narrow set of special coordinates, whitening should fall short. It does not.
-    Whitening de-hubs at least as well as the directed ablation and recovers stranded words comparably or better,
-    on both encoders, while discarding no directions. On the heavy-hub XLM-R it flattens the in-degree
-    distribution more than ABTT and edges it on both accuracy and recovery. Pick a metric and watch the three
-    bars.</p>
+    Whitening matches the directed ablation on the mild-hub mBERT, where recovery differs by at most 0.009 on any
+    pair, and beats it on the heavy-hub XLM-R, where it is higher on both accuracy and recovery on all five pairs
+    and flattens the in-degree distribution more on four of them (en&ndash;zh is the exception). It does all this
+    while discarding no directions. Pick a metric and watch the three bars.</p>
   </div>
   <div class="exp" id="exp-whiten">
     <div class="head"><div class="t">Whitening vs. directed ablation</div>
@@ -446,7 +446,7 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
     <p>The control is the point: random-amplify (the open marker) barely moves, so the collapse is specific to the
     hub subspace, not to perturbing the vectors. One honest wrinkle the dial shows: on the milder-hub mBERT,
     amplification <em>concentrates</em> in-degree into bigger hubs, but on the already hub-saturated XLM-R it
-    <em>disperses</em> in-degree even as retrieval still collapses. The behavioral failure is what is common to
+    <em>disperses</em> in-degree on four of five pairs (en&ndash;zh is flat) even as retrieval still collapses. The behavioral failure is what is common to
     both; the in-degree shape is regime-dependent.</p>
   </div>
 </div></section>
@@ -481,7 +481,7 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
       <p>A few hub words catch up to 134 queries while 82% of the gallery is never retrieved.
       Lexical ambiguity, not frequency, predicts who fails, and context dissolves the hubs.</p></div>
     <div class="tk"><div class="n">02</div><h4>The subspace is a causal dial</h4>
-      <p>Project it out and stranded words return (0.11 to 0.18 on en&ndash;es, matching CSLS);
+      <p>Project it out and stranded words return (0.12 to 0.19 on en&ndash;es, matching CSLS);
       amplify it and retrieval collapses (P@1 0.61 to 0.21). Matched random directions do neither.</p></div>
     <div class="tk"><div class="n">03</div><h4>Concentrated, portable, not low-dimensional</h4>
       <p>Ten directions hold 14&ndash;23% of the variance while effective rank stays in the
@@ -529,7 +529,7 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
     const W=900,H=340,pad={l:54,r:18,t:18,b:42};
     const xOf=i=> pad.l + (i/(ks.length-1))*(W-pad.l-pad.r);
     const yOf=v=> H-pad.b - v*(H-pad.t-pad.b);
-    function klabel(k){return k>=99?'full sentence':(k+(k==1?' token':' tokens'));}
+    function klabel(k){return k>=99?'full sentence':(k+(k==1?' word':' words'));}
     function draw(){
       const C=COL();
       clear(svg);
@@ -539,7 +539,7 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
       }
       ks.forEach((k,i)=>{const x=xOf(i);
         svg.appendChild(svgEl('text',{x:x,y:H-pad.b+18,'text-anchor':'middle',class:'axis'})).textContent=k>=99?'full':k;});
-      svg.appendChild(svgEl('text',{x:(W)/2,y:H-6,'text-anchor':'middle',class:'axislab'})).textContent='context length (tokens, log-spaced)';
+      svg.appendChild(svgEl('text',{x:(W)/2,y:H-6,'text-anchor':'middle',class:'axislab'})).textContent='context length (words, log-spaced)';
       const data=D.length.encoders[enc];
       langs.forEach(l=>{
         const pts=data[l].map((v,i)=>xOf(i)+','+yOf(v)).join(' ');
