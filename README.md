@@ -130,6 +130,7 @@ over seeds.
 |---|---|---|
 | Sentence retrieval is near-perfect, word retrieval is not | `0.96`–`1.00` vs `0.2`–`0.6` P@1 | `MODEL=mbert python experiments/length_curve.py` |
 | Length, not distinctiveness, drives the curve | random-bag stays near `0` | `python experiments/length_confound_control.py` |
+| Chinese is segmented with jieba, not whitespace | en-zh single-token `0.059` (mBERT) / `0.023` (XLM-R) | `MODEL=mbert TARGETS=zh python experiments/length_curve.py` |
 | Single-token hubness is severe (mBERT en-es) | top hub = NN of `134` queries, `82%` never retrieved | `MODEL=mbert python experiments/hub_ablation.py` |
 | Ambiguity predicts failure, not rarity | polysemy is the largest standardised coefficient with all five factors fit jointly | `python experiments/perword_logreg.py` |
 | Accuracy and skew move together across depth | mBERT BLI peaks at layer 4 | `MODEL=mbert python experiments/layer_sweep.py` |

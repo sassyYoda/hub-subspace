@@ -16,6 +16,9 @@ dependencies = [
     "tqdm>=4.65",
     "huggingface-hub>=0.24",
     "pytest>=8.0",
+    # Chinese word segmentation for the length curve; FLORES Chinese is unspaced,
+    # so whitespace splitting would leave the target side untruncated.
+    "jieba>=0.42",
 ]
 
 [project.optional-dependencies]
