@@ -39,6 +39,20 @@ def embed(sents):
         out.append(((hs*m).sum(1)/m.sum(1).clamp(min=1)).cpu().numpy())
     return np.concatenate(out,0)
 
+# FLORES Chinese is unsegmented, so s.split() leaves the target side untruncated.
+# Segment per language; SEG=whitespace restores the old behaviour for comparison.
+SEG = os.environ.get("SEG", "aware")
+NOSPACE = {"zh"}
+
+def segment(lang, sent):
+    if SEG == "whitespace" or lang not in NOSPACE:
+        return sent.split()
+    import jieba
+    return [w for w in jieba.cut(sent) if w.strip()]
+
+def joiner(lang):
+    return "" if (SEG != "whitespace" and lang in NOSPACE) else " "
+
 def p1_and_distinct(en_items,xx_items):
     X=embed(en_items)
     Y=embed(xx_items)
@@ -59,14 +73,14 @@ def p1_and_distinct(en_items,xx_items):
 for tgt in ["es","zh"]:
     en=load_sents("en")
     xx=load_sents(tgt)
-    en_w=[s.split() for s in en]
-    xx_w=[s.split() for s in xx]
+    en_w=[segment("en", s) for s in en]
+    xx_w=[segment(tgt, s) for s in xx]
     N=len(en)
     rng=np.random.RandomState(0)
     print(f"\n[en-{tgt}] mBERT L8 bitext P@1 (test=712) / within-en confusability", flush=True)
     print(f"  {'k':>4} {'coherent':>18} {'shuffled':>18} {'randombag':>18}", flush=True)
     for k in [1,3,5,99]:
-        def build(words_list, mode):
+        def build(words_list, mode, lang="en"):
             items=[]
             for i in range(N):
                 w=words_list[i]
@@ -79,16 +93,16 @@ for tgt in ["es","zh"]:
                     # shared across languages so the bags stay parallel.
                     js=randidx[i]
                     it=[words_list[j][0] for j in js if words_list[j]]
-                items.append(" ".join(it) if it else (w[0] if w else ""))
+                items.append(joiner(lang).join(it) if it else (w[0] if w else ""))
             return items
         kk=min(k,99)
         randidx=[rng.choice(N,min(k,8),replace=False) for _ in range(N)]  # cap bag size at 8
-        coh_p,coh_c=p1_and_distinct(build(en_w,"coherent"),build(xx_w,"coherent"))
-        shf_p,shf_c=p1_and_distinct(build(en_w,"shuffled"),build(xx_w,"shuffled"))
+        coh_p,coh_c=p1_and_distinct(build(en_w,"coherent","en"),build(xx_w,"coherent",tgt))
+        shf_p,shf_c=p1_and_distinct(build(en_w,"shuffled","en"),build(xx_w,"shuffled",tgt))
         if k>=99:
             rb_p,rb_c=(float("nan"),float("nan"))
         else:
-            rb_p,rb_c=p1_and_distinct(build(en_w,"randombag"),build(xx_w,"randombag"))
+            rb_p,rb_c=p1_and_distinct(build(en_w,"randombag","en"),build(xx_w,"randombag",tgt))
         klab=k if k<99 else "full"
         print(f"  {str(klab):>4} {coh_p:>7.3f}(c{coh_c:.2f}) {shf_p:>7.3f}(c{shf_c:.2f}) {rb_p:>7.3f}(c{rb_c:.2f})", flush=True)
     hb(f"en-{tgt} done")

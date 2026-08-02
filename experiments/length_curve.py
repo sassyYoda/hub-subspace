@@ -48,8 +48,22 @@ def embed(sents):
         out.append(((hs*m).sum(1)/m.sum(1).clamp(min=1)).cpu().numpy())
     return np.concatenate(out, 0)
 
-def prefix(words, k):
-    return [" ".join(w[:k]) if w[:k] else (w[0] if w else "") for w in words]
+# Whitespace is not a word boundary in every script. FLORES Chinese is unsegmented,
+# so s.split() returns the whole sentence as one "word" for ~69% of lines and the
+# target side is never actually truncated. Segment per language instead; SEG=whitespace
+# restores the old behaviour for comparison.
+SEG = os.environ.get("SEG", "aware")
+NOSPACE = {"zh"}          # scripts written without inter-word spaces
+
+def segment(lang, sent):
+    if SEG == "whitespace" or lang not in NOSPACE:
+        return sent.split()
+    import jieba
+    return [w for w in jieba.cut(sent) if w.strip()]
+
+def prefix(words, k, lang="en"):
+    join = "" if (SEG != "whitespace" and lang in NOSPACE) else " "
+    return [join.join(w[:k]) if w[:k] else (w[0] if w else "") for w in words]
 
 def p1(X, Y):
     X = X - X.mean(0)
@@ -60,8 +74,8 @@ def p1(X, Y):
     pred = cosine_similarity(X[test], Y[test]).argmax(1)
     return float((pred == np.arange(len(test))).mean())
 
-en_words = [s.split() for s in load_sents("en")]
-en_emb = {k: embed(prefix(en_words, k)) for k in KS}
+en_words = [segment("en", s) for s in load_sents("en")]
+en_emb = {k: embed(prefix(en_words, k, "en")) for k in KS}
 hb("cached English prefix embeddings")
 
 curves = {}
@@ -69,15 +83,16 @@ for tgt in TARGETS:
     if tgt not in CODE:
         hb(f"skip {tgt} (no FLORES code)")
         continue
-    xx_words = [s.split() for s in load_sents(tgt)]
+    xx_words = [segment(tgt, s) for s in load_sents(tgt)]
     row = []
     for k in KS:
-        row.append(round(p1(en_emb[k], embed(prefix(xx_words, k))), 4))
+        row.append(round(p1(en_emb[k], embed(prefix(xx_words, k, tgt))), 4))
     curves[f"en-{tgt}"] = dict(zip([str(k) for k in KS], row))
     hb(f"en-{tgt}: {row}")
 
-out = {"model": MODEL, "layer": L, "n": N, "ks": KS, "curves": curves}
+out = {"model": MODEL, "layer": L, "n": N, "ks": KS, "segmentation": SEG, "curves": curves}
 os.makedirs("results", exist_ok=True)
-with open(f"results/length_{MODEL}.json", "w") as f:
+suffix = "" if SEG == "aware" else f"_{SEG}"
+with open(f"results/length_{MODEL}{suffix}.json", "w") as f:
     json.dump(out, f, indent=2)
 print(f"LENGTH_{MODEL.upper()} DONE", flush=True)
