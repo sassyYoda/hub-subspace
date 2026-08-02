@@ -35,3 +35,7 @@ README-STYLE.md
 
 # paper submission build (kept out of the code artifact, like paper_acl/)
 hubness_arr_submission_august/
+
+# personal backup utility; names the gitignored paper dirs, so it stays out of the
+# anonymized code artifact
+backup_paper_sources.sh
