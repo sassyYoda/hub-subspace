@@ -24,7 +24,7 @@ results/
 .ipynb_checkpoints/
 .DS_Store
 
-# paper drafts and research notes (site lives in site-docs/, which is tracked)
+# paper drafts and research notes (site lives in docs/, which is tracked)
 paper/
 paper_acl/
 notes/
@@ -35,6 +35,10 @@ README-STYLE.md
 
 # paper submission build (kept out of the code artifact, like paper_acl/)
 hubness_arr_submission_august/
+hubness_eacl2027_camera_ready/
+
+# local canonical-source map (internal navigation, not for the public repo)
+HUBNESS_CANONICAL.md
 
 # personal backup utility; names the gitignored paper dirs, so it stays out of the
 # anonymized code artifact

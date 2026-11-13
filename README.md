@@ -7,7 +7,7 @@ dial. Project them out and stranded words come back; amplify them and retrieval
 collapses; matched random directions do neither.
 
 Paper: **Hubness, Not Misalignment: A Causal Dial for Cross-Lingual Word
-Retrieval in Multilingual Models** (under review; arXiv link TBD).
+Retrieval in Multilingual Models** (accepted to EACL 2027, Main Conference; arXiv link TBD).
 
 Using truncated sentence retrieval across eleven languages and dictionary induction
 across five pairs, both on two encoders, the paper shows that word-level retrieval is the
@@ -172,17 +172,17 @@ experiments/            one script per experiment (see above)
 tests/                  unit tests for the library
 data/                   MUSE dicts (auto-downloaded) and FLORES-200 (created on demand)
 results/                experiment outputs (JSON, caches; created by the scripts)
-site-docs/              paper landing page (figures, PDF, HTML)
+docs/                   paper landing page (figures, PDF, HTML) — served via GitHub Pages
 ```
 
 ## Citation
 
 ```bibtex
-@misc{hubnessdial2026,
-  title  = {Hubness, Not Misalignment: A Causal Dial for Cross-Lingual Word Retrieval in Multilingual Models},
-  author = {Author list to be added on acceptance},
-  year   = {2026},
-  note   = {Under review},
+@inproceedings{ahuja2027hubness,
+  title     = {Hubness, Not Misalignment: A Causal Dial for Cross-Lingual Word Retrieval in Multilingual Models},
+  author    = {Ahuja, Aryan},
+  booktitle = {Proceedings of the 2027 Conference of the European Chapter of the Association for Computational Linguistics (EACL)},
+  year      = {2027}
 }
 ```
 
