@@ -201,8 +201,8 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
     wherein a handful of words (hubs) become the nearest neighbor for far too many translation
     queries, stranding the rest of the vocabulary (anti-hubs). Truncating sentence retrieval down to
     single words across eleven diverse languages, we find a few words to be the nearest neighbors of
-    up to 134 queries each (English&ndash;Spanish), while 82% of the target words are never retrieved; this imbalance
-    and the large hub mass gradually dissolve as the amount of context grows and lexical
+    up to 17 queries each (English&ndash;Spanish, distinct words), while 35% of the target words are never retrieved; this imbalance
+    and the hub mass gradually dissolve as the amount of context grows and lexical
     ambiguity disappears. We find this hubness to be carried by ten high-variance directions of
     the single-token activation space, emerging as a <b>bidirectional causal dial</b>. Projecting
     out these directions recovers otherwise stranded words and amplifying them worsens retrieval,
@@ -228,7 +228,7 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
     <img src="assets/fig1_hubswitch.png" alt="Word translation funnels queries onto a hub word; projecting out the hub subspace releases them and stranded words come back">
     <figcaption><b>The hub, and the switch.</b> Left: retrieving each English word's nearest
     Spanish neighbor from single-token activations funnels queries onto a hub word; on mBERT
-    en&ndash;es the top hub is the nearest neighbor of 134 queries and 82% of Spanish words are
+    en&ndash;es the top hub is the nearest neighbor of 17 distinct query words and 35% of Spanish words are
     never retrieved. Right: projecting out the ten highest-variance directions releases the
     queries and the stranded words come back. The effect is quantitative, bidirectional, and
     specific to these directions.</figcaption>
@@ -276,9 +276,10 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
   <div class="eyebrow left">03 &middot; The mechanism</div>
   <h2>A few words become hubs</h2>
   <p class="lead">In single-token space the nearest-neighbor graph collapses onto a few <em>hub</em> words that are
-  the top match for hundreds of queries, while most words are no one's match.</p>
-  <p>One hub word can be the nearest neighbor of up to 134 queries; 82% of the gallery is
-  never retrieved by anyone. As context grows, the hub mass melts away. Hubs track
+  the top match for many queries, while most words are no one's match.</p>
+  <p>One hub word can be the nearest neighbor of up to 17 distinct query words; 35% of the gallery is
+  never retrieved by anyone. (The raw single-token peak of 134 is a repeated-token artifact: 134 queries
+  are the word "the", whose identical embeddings collapse onto one target.) As context grows, the hub mass melts away. Hubs track
   <b>lexical ambiguity</b>, not frequency: monosemous words retrieve at 0.52 against 0.26
   for polysemous ones, and a multivariate regression keeps polysemy as the strongest
   per-word predictor once word length, frequency, and subword count are held fixed. The
@@ -478,7 +479,7 @@ hr.s{border:0;border-top:1px solid var(--line);margin:30px 0}
   <h2>What to remember</h2>
   <div class="cards">
     <div class="tk"><div class="n">01</div><h4>It is hubness, not missing alignment</h4>
-      <p>A few hub words catch up to 134 queries while 82% of the gallery is never retrieved.
+      <p>A few hub words catch up to 17 distinct queries while 35% of the gallery is never retrieved.
       Lexical ambiguity, not frequency, predicts who fails, and context dissolves the hubs.</p></div>
     <div class="tk"><div class="n">02</div><h4>The subspace is a causal dial</h4>
       <p>Project it out and stranded words return (0.12 to 0.19 on en&ndash;es, matching CSLS);

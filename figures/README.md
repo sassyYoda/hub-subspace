@@ -10,6 +10,7 @@ dir, e.g. `OUT=../hubness_eacl2027_camera_ready/figures/hubness python3 figures/
 
 | Script | Figure | Data source |
 |---|---|---|
+| `make_fig_collapse.py` | Fig. 3, `fig3_hub_collapse.pdf` (sorted single-token in-degree: raw spike vs distinct-type hubness vs flat sentence level) | recomputed from FLORES + cached mBERT, same fixed seed-0 split as `experiments/length_curve.py`; asserts raw peak 134, distinct-type peak 17 / 35% never, sentence peak small before drawing |
 | `make_fig_lineage.py` | Fig. 7, `fig_lineage.pdf` (retrieval-fix lineage: CSLS / inverted-softmax flatten in-degree skew) | self-contained; means from `tab:lineage`, 95% CIs recovered from the published PDF (see the script's provenance docstring) |
 | `make_fig_downstream.py` | Fig. 8, `fig4_downstream_v5.pdf` (frozen-decoder mid-forward ablation, first-token metrics) | `results/downstream_patch.json` (N=150, 8-seed run) |
 | `make_fig_amplify.py` | Fig. 10, `fig_amplify.pdf` (bidirectional dial: ablate / amplify P@1 and max in-degree) | `paper_acl/EXPERIMENT_amplify_RESULTS.md` (20-seed grid), cross-checked against `tab:amplify` |

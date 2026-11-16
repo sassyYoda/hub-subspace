@@ -10,8 +10,13 @@ The test split is fixed and deterministic. A run with a restricted TARGETS write
 so it cannot overwrite the eleven-language sweep that Figure 2 is drawn from.
 HUBSTATS=1 additionally records the in-degree distribution behind each point on the
 curve: gallery size, peak in-degree, fraction never retrieved, skewness and the hub
-string itself. This is where the paper's single-token hubness figures come from
-(mBERT en--es at k=1: peak in-degree 134, 82% never retrieved, hub "El"; at full
+string itself, plus the deduplicated distinct-type statistics. The raw single-token
+peak is a string-frequency artifact: at k=1 the query set repeats sentence-initial
+words (mBERT en--es has 134 copies of "the"), which share an embedding and are forced
+onto one target, so the raw peak equals the count of the most common first word. The
+distinct-type figures collapse each first-word string to one entry per type and are the
+single-token hubness numbers reported in the paper (mBERT en--es at k=1: raw peak 134 /
+82% never retrieved, hub "El"; distinct types peak 17 / 35% never retrieved; at full
 sentence length: 2 and 0.4%).
 Out: results/length_{MODEL}.json (restricted TARGETS -> results/length_{MODEL}_{targets}.json)
 
@@ -77,7 +82,15 @@ def prefix(words, k, lang="en"):
 
 HUBSTATS = os.environ.get("HUBSTATS", "") not in ("", "0")
 
-def p1(X, Y, labels=None):
+def _first_idx(strings):
+    """Indices of the first occurrence of each distinct string, preserving order."""
+    seen, idx = set(), []
+    for j, w in enumerate(strings):
+        if w not in seen:
+            seen.add(w); idx.append(j)
+    return np.array(idx)
+
+def p1(X, Y, glabels=None, qlabels=None):
     X = X - X.mean(0)
     Y = Y - Y.mean(0)
     n = len(X)
@@ -90,13 +103,30 @@ def p1(X, Y, labels=None):
     # Queries and gallery are the same held-out set, so in-degree is over len(test) items.
     n1 = np.bincount(pred, minlength=len(test))
     top = int(n1.argmax())
-    return acc, {"gallery": int(len(test)), "peak_indegree": int(n1.max()),
-                 "never_retrieved": round(float((n1 == 0).mean()), 4),
-                 "skew": round(float(skew(n1)), 3),
-                 "hub": labels[test[top]] if labels else None}
+    st = {"gallery": int(len(test)), "peak_indegree": int(n1.max()),
+          "never_retrieved": round(float((n1 == 0).mean()), 4),
+          "skew": round(float(skew(n1)), 3),
+          "hub": glabels[test[top]] if glabels else None}
+    # Deduplicated in-degree: collapse repeated query/gallery string types to one entry per
+    # type, then re-retrieve. At k=1 this removes the sentence-initial duplication (e.g. 134
+    # copies of "the") that forces identical tokens onto one target, isolating geometric
+    # hubness from the string-frequency artifact.
+    if glabels is not None and qlabels is not None:
+        qs = [qlabels[i] for i in test]; gs = [glabels[i] for i in test]
+        qi, gi = _first_idx(qs), _first_idx(gs)
+        Xt, Yt = X[test], Y[test]
+        predD = cosine_similarity(Xt[qi], Yt[gi]).argmax(1)
+        n1d = np.bincount(predD, minlength=len(gi))
+        gdist = [gs[i] for i in gi]
+        st.update({"distinct_queries": int(len(qi)), "distinct_gallery": int(len(gi)),
+                   "peak_indegree_dedup": int(n1d.max()),
+                   "never_retrieved_dedup": round(float((n1d == 0).mean()), 4),
+                   "hub_dedup": gdist[int(n1d.argmax())]})
+    return acc, st
 
 en_words = [segment("en", s) for s in load_sents("en")]
-en_emb = {k: embed(prefix(en_words, k, "en")) for k in KS}
+en_texts = {k: prefix(en_words, k, "en") for k in KS}
+en_emb = {k: embed(en_texts[k]) for k in KS}
 hb("cached English prefix embeddings")
 
 curves, hubness = {}, {}
@@ -108,12 +138,14 @@ for tgt in TARGETS:
     row, stats = [], {}
     for k in KS:
         texts = prefix(xx_words, k, tgt)
-        acc, st = p1(en_emb[k], embed(texts), texts)
+        acc, st = p1(en_emb[k], embed(texts), texts, en_texts[k])
         row.append(round(acc, 4))
         if st:
             stats[str(k)] = st
             hb(f"en-{tgt} k={k}: P@1={acc:.4f} peak={st['peak_indegree']} "
-               f"never={st['never_retrieved']:.3f} hub={st['hub']!r}")
+               f"never={st['never_retrieved']:.3f} hub={st['hub']!r} | "
+               f"dedup peak={st.get('peak_indegree_dedup')} "
+               f"never={st.get('never_retrieved_dedup')} hub={st.get('hub_dedup')!r}")
     curves[f"en-{tgt}"] = dict(zip([str(k) for k in KS], row))
     if stats:
         hubness[f"en-{tgt}"] = stats

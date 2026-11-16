@@ -12,9 +12,11 @@ Retrieval in Multilingual Models** (accepted to EACL 2027, Main Conference; arXi
 Using truncated sentence retrieval across eleven languages and dictionary induction
 across five pairs, both on two encoders, the paper shows that word-level retrieval is the
 worst case of a smooth context-length curve, and that the bottleneck is hubness:
-a few hub words are the nearest neighbor of up to 134 queries while 82% of the
-gallery is never retrieved (mBERT en-es, single words), with lexical ambiguity the strongest per-word
-predictor under controls. The hub structure is concentrated, not low-dimensional:
+a few hub words are the nearest neighbor of up to 17 queries while 35% of the
+gallery is never retrieved (mBERT en-es, single words, distinct types), with lexical ambiguity the strongest per-word
+predictor under controls. (The raw single-token peak of 134 is a repeated-token artifact: 134 held-out
+sentences begin with "the", whose identical embeddings collapse onto one target; deduplicating to
+distinct first-word types gives the geometric peak of 17.) The hub structure is concentrated, not low-dimensional:
 the top ten directions hold about 14% of the variance on mBERT and 23% on XLM-R
 while effective rank stays at several hundred of 768. The subspace estimated on
 en-es transfers unchanged to the other four pairs (113% and 93% of the
@@ -136,7 +138,7 @@ aside first if you want to keep it.
 | Sentence retrieval is near-perfect, word retrieval is not | full sentences `0.96`–`1.00` vs single words `0.007`–`0.135` P@1 | `MODEL=mbert python experiments/length_curve.py` |
 | Length, not distinctiveness, drives the curve | random-bag stays near `0` | `python experiments/length_confound_control.py` |
 | Chinese is segmented with jieba, not whitespace | en-zh single-token `0.059` (mBERT) / `0.023` (XLM-R) | `MODEL=mbert TARGETS=zh python experiments/length_curve.py` (and `MODEL=xlmr`) |
-| Single-token hubness is severe (mBERT en-es) | at `k=1`, top hub = NN of `134` queries (`"El"`), `82%` never retrieved; at full sentences, `2` and `0.4%` | `MODEL=mbert TARGETS=es HUBSTATS=1 python experiments/length_curve.py` |
+| Single-token hubness is severe (mBERT en-es) | at `k=1`, distinct-type peak in-degree `17` (`"Internet"`), `35%` never retrieved; raw peak `134` (`"El"`), `82%`, is a repeated-token artifact (`134` copies of `"The"`); at full sentences, `2` and `0.4%` | `MODEL=mbert TARGETS=es HUBSTATS=1 python experiments/length_curve.py` |
 | Dictionary retrieval is skewed too (mBERT en-es) | peak in-degree `10`, `36%` never retrieved | `MODEL=mbert python experiments/hub_ablation.py` |
 | Ambiguity predicts failure, not rarity | polysemy is the largest standardised coefficient with all five factors fit jointly | `python experiments/perword_logreg.py` |
 | Accuracy and skew move together across depth | mBERT BLI peaks at layer 4 | `MODEL=mbert python experiments/layer_sweep.py` |
